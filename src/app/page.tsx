@@ -14,8 +14,9 @@ export default function Home() {
   };
 
   const speak = () => {
-    const utterance = new SpeechSynthesisUtterance(translatedText);
-    utterance.lang = targetLang;
+    if (!translatedText) return;
+    const utterance = new window.SpeechSynthesisUtterance(translatedText);
+    utterance.lang = targetLang; // e.g., "en-US", "es-ES", "fr-FR"
     window.speechSynthesis.speak(utterance);
   };
 

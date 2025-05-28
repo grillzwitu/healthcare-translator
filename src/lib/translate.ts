@@ -7,7 +7,7 @@ const openai = new OpenAI({
 
 export async function translateText(text: string, targetLang: string) {
   const response = await openai.chat.completions.create({
-    model: "gpt-4.1",
+    model: "gpt-4o-transcribe",
     messages: [
       {
         role: "system",
