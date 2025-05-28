@@ -32,7 +32,7 @@ export async function translateText(text: string, targetLang: string) {
       { role: "user", content: text },
     ],
     max_completion_tokens: 800,
-    temperature: 1,
+    temperature: 0.3,
     top_p: 1,
     frequency_penalty: 0,
     presence_penalty: 0,
