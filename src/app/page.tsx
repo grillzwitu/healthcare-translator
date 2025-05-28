@@ -1,6 +1,6 @@
 "use client";
-import Translator from "@/components/Translator";
+import DualPanelChat from "@/components/DualPanelChat";
 
 export default function Home() {
-  return <Translator />;
+  return <DualPanelChat />;
 }

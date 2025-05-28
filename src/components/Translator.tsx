@@ -1,5 +1,6 @@
 import { useState } from "react";
 import SpeechToText from "./SpeechToText";
+import { LANGUAGES } from "@/constants/languages"; // <-- Import here
 
 export default function Translator() {
   const [translatedText, setTranslatedText] = useState("");
@@ -66,13 +67,9 @@ export default function Translator() {
           onChange={(e) => setInputLang(e.target.value)}
           className="p-2 border rounded mb-4"
         >
-          <option value="en-US">English</option>
-          <option value="es-ES">Spanish</option>
-          <option value="fr-FR">French</option>
-          <option value="de-DE">German</option>
-          <option value="pt-PT">Portuguese</option>
-          <option value="ru-RU">Russian</option>
-          <option value="sv-SE">Swedish</option>
+          {LANGUAGES.map(l => (
+            <option key={l.code} value={l.code}>{l.label}</option>
+          ))}
         </select>
 
         <SpeechToText
@@ -94,13 +91,9 @@ export default function Translator() {
           onChange={(e) => setTargetLang(e.target.value)}
           className="p-2 border rounded mb-4"
         >
-          <option value="en-US">English</option>
-          <option value="es-ES">Spanish</option>
-          <option value="fr-FR">French</option>
-          <option value="de-DE">German</option>
-          <option value="pt-PT">Portuguese</option>
-          <option value="ru-RU">Russian</option>
-          <option value="sv-SE">Swedish</option>
+          {LANGUAGES.map(l => (
+            <option key={l.code} value={l.code}>{l.label}</option>
+          ))}
         </select>
 
         {correction && (
