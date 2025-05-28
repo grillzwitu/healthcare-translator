@@ -3,12 +3,13 @@ import OpenAI from "openai";
 
 const openai = new OpenAI({
   apiKey: process.env.AZURE_OPENAI_API_KEY,
-  baseURL: process.env.AZURE_OPENAI_ENDPOINT, // e.g., https://YOUR-RESOURCE-NAME.openai.azure.com/openai/deployments/YOUR-DEPLOYMENT-NAME
+  dangerouslyAllowBrowser: true, // Only use this in a secure environment
+  baseURL: `${process.env.AZURE_OPENAI_ENDPOINT}openai/deployments/${process.env.AZURE_OPENAI_DEPLOYMENT_NAME}`,
   defaultHeaders: {
     "api-key": process.env.AZURE_OPENAI_API_KEY!,
   },
   defaultQuery: {
-    "api-version": "2025-03-01-preview", // or your Azure API version
+    "api-version": "2025-03-01-preview",
   },
 });
 
