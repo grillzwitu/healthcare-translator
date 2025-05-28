@@ -8,7 +8,7 @@ const openai = new OpenAI({
     "api-key": process.env.AZURE_OPENAI_API_KEY!,
   },
   defaultQuery: {
-    "api-version": "2024-02-15-preview", // or your Azure API version
+    "api-version": "2025-03-01-preview", // or your Azure API version
   },
 });
 
