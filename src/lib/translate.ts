@@ -3,7 +3,7 @@ import OpenAI from "openai";
 
 const openai = new OpenAI({
   apiKey: process.env.AZURE_OPENAI_API_KEY,
-  dangerouslyAllowBrowser: true, // Only use this in a secure environment
+  dangerouslyAllowBrowser: true, // Enable browser usage
   baseURL: `${process.env.AZURE_OPENAI_ENDPOINT}openai/deployments/${process.env.AZURE_OPENAI_DEPLOYMENT_NAME}`,
   defaultHeaders: {
     "api-key": process.env.AZURE_OPENAI_API_KEY!,
