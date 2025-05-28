@@ -16,25 +16,31 @@ const client = new AzureOpenAI({
 });
 
 export async function translateText(text: string, targetLang: string) {
-  try {
-    const response = await client.chat.completions.create({
-      messages: [
-        {
-          role: "system",
-          content: `Translate the following medical phrase to ${targetLang}. Use patient-friendly language.`,
-        },
-        { role: "user", content: text },
-      ],
-      max_completion_tokens: 800,
-      temperature: 1,
-      top_p: 1,
-      frequency_penalty: 0,
-      presence_penalty: 0,
-      model: modelName,
-    });
+  const response = await client.chat.completions.create({
+    messages: [
+      {
+        role: "system",
+        content: `You are a medical transcription and translation assistant. 
+        First, correct any errors in the following transcript and clarify ambiguous or incorrect statements. 
+        If there are multiple possible corrections, provide suggestions. 
+        Then, translate the best/corrected version to ${targetLang} using patient-friendly language. 
+        Respond in this format:
+        - Corrected Transcript: <text>
+        - Suggestions: <list, if any>
+        - Translation: <translated text>`,
+      },
+      { role: "user", content: text },
+    ],
+    max_completion_tokens: 800,
+    temperature: 1,
+    top_p: 1,
+    frequency_penalty: 0,
+    presence_penalty: 0,
+    model: modelName,
+  });
 
-    return response.choices[0]?.message?.content || "Translation failed";
-  } catch (error) {
-    throw new Error(`Translation failed: ${error}`);
+  if (response?.error !== undefined && response.status !== "200") {
+    throw response.error;
   }
+  return response.choices[0]?.message?.content || "Translation failed";
 }

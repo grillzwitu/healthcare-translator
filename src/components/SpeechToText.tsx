@@ -5,6 +5,7 @@ interface SpeechToTextProps {
   onTranscript: (text: string) => void | Promise<void>;
   isListening: boolean;
   setIsListening: Dispatch<SetStateAction<boolean>>;
+  inputLang: string; // <-- Add this
 }
 
 type MySpeechRecognitionEvent = {
@@ -15,6 +16,7 @@ export default function SpeechToText({
   onTranscript,
   isListening,
   setIsListening,
+  inputLang, // <-- Add this
 }: SpeechToTextProps) {
   const [transcript, setTranscript] = useState("");
   const [speechDetected, setSpeechDetected] = useState(false);
@@ -35,7 +37,7 @@ export default function SpeechToText({
       }
 
       const recognition = new SpeechRecognitionConstructor();
-      recognition.lang = "en-US";
+      recognition.lang = inputLang; // <-- Use the prop here
       recognition.continuous = true;
       recognition.interimResults = false;
 
