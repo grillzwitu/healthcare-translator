@@ -23,8 +23,27 @@ declare global {
     // ...other properties as needed
   }
 
+  interface SpeechRecognitionAlternative {
+    transcript: string;
+    confidence: number;
+  }
+
+  interface SpeechRecognitionResult {
+    readonly length: number;
+    item(index: number): SpeechRecognitionAlternative;
+    [index: number]: SpeechRecognitionAlternative;
+    isFinal: boolean;
+  }
+
+  interface SpeechRecognitionResultList {
+    readonly length: number;
+    item(index: number): SpeechRecognitionResult;
+    [index: number]: SpeechRecognitionResult;
+  }
+
   interface SpeechRecognitionEvent {
-    results: Array<Array<{ transcript: string }>>;
+    readonly resultIndex: number;
+    readonly results: SpeechRecognitionResultList;
   }
 }
 

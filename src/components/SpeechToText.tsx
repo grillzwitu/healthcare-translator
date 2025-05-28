@@ -27,7 +27,7 @@ export default function SpeechToText({
     try {
       const SpeechRecognitionConstructor =
         window.SpeechRecognition || window.webkitSpeechRecognition;
-      
+
       if (!SpeechRecognitionConstructor) {
         throw new Error("Speech recognition is not supported in this browser.");
       }
@@ -37,18 +37,25 @@ export default function SpeechToText({
       }
 
       const recognition = new SpeechRecognitionConstructor();
-      recognition.lang = inputLang; // <-- Use the prop here
+      recognition.lang = inputLang;
       recognition.continuous = true;
-      recognition.interimResults = false;
+      recognition.interimResults = true; // <-- Enable interim results
 
-      recognition.onresult = (event: MySpeechRecognitionEvent) => {
-        try {
-          const spokenText = event.results[event.results.length - 1][0].transcript;
-          setTranscript(spokenText);
-          onTranscript(spokenText);
-        } catch (e) {
-          setError(`Error processing speech result: ${e instanceof Error ? e.message : String(e)}`);
+      let fullTranscript = "";
+
+      recognition.onresult = (event: SpeechRecognitionEvent) => {
+        let interimTranscript = "";
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          const result = event.results[i]; // SpeechRecognitionResult
+          const transcriptPiece = result[0].transcript;
+          if (result.isFinal) {
+            fullTranscript += transcriptPiece + " ";
+          } else {
+            interimTranscript += transcriptPiece;
+          }
         }
+        setTranscript(fullTranscript + interimTranscript);
+        onTranscript(fullTranscript + interimTranscript);
       };
 
       recognition.onerror = (event) => {
