@@ -46,6 +46,12 @@ export default function Home() {
           >
             Speak Translation
           </button>
+          <button
+            onClick={() => setTranslatedText("This is a test translation.")}
+            className="mt-2 bg-yellow-500 text-white p-2 rounded"
+          >
+            Set Test Translation
+          </button>
         </div>
       )}
     </main>
