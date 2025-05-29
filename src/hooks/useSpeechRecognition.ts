@@ -9,6 +9,8 @@ export function useSpeechRecognition(
   const [error, setError] = useState<string | null>(null);
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const debounceTimer = useRef<NodeJS.Timeout | null>(null);
+  const fullTranscriptRef = useRef(""); // Accumulate all final results
 
   const startListening = () => {
     try {
@@ -28,22 +30,34 @@ export function useSpeechRecognition(
       recognition.continuous = true;
       recognition.interimResults = true;
 
-      let fullTranscript = "";
+      fullTranscriptRef.current = "";
 
       recognition.onresult = (event: SpeechRecognitionEvent) => {
         let interimTranscript = "";
+        let newFinal = false;
         for (let i = event.resultIndex; i < event.results.length; ++i) {
           const result = event.results[i];
           const transcriptPiece = result[0].transcript;
           if (result.isFinal) {
-            fullTranscript += transcriptPiece + " ";
-            // Only call onFinalTranscript when a result is final
-            onFinalTranscript(fullTranscript.trim());
+            fullTranscriptRef.current += transcriptPiece + " ";
+            newFinal = true;
           } else {
             interimTranscript += transcriptPiece;
           }
         }
-        setTranscript(fullTranscript + interimTranscript);
+        setTranscript(fullTranscriptRef.current + interimTranscript);
+
+        // Debounce on each new final result
+        if (newFinal) {
+          if (debounceTimer.current) clearTimeout(debounceTimer.current);
+          debounceTimer.current = setTimeout(() => {
+            if (fullTranscriptRef.current.trim()) {
+              onFinalTranscript(fullTranscriptRef.current.trim());
+              fullTranscriptRef.current = "";
+              setTranscript("");
+            }
+          }, 1500); // 1.5 seconds after last final result
+        }
       };
 
       recognition.onerror = (event) => {
@@ -61,12 +75,21 @@ export function useSpeechRecognition(
       };
 
       recognition.onspeechstart = () => setSpeechDetected(true);
+
       recognition.onspeechend = () => setSpeechDetected(false);
+
       recognition.onend = () => {
         setIsListening(false);
         setSpeechDetected(false);
-        // Optionally, call onFinalTranscript here if you want to handle end-of-speech as final
-        // onFinalTranscript(fullTranscript.trim());
+        // Flush any pending transcript on end
+        if (debounceTimer.current) {
+          clearTimeout(debounceTimer.current);
+        }
+        if (fullTranscriptRef.current.trim()) {
+          onFinalTranscript(fullTranscriptRef.current.trim());
+          fullTranscriptRef.current = "";
+          setTranscript("");
+        }
       };
 
       recognition.start();
@@ -88,6 +111,9 @@ export function useSpeechRecognition(
       setIsListening(false);
       setSpeechDetected(false);
       setError(null);
+      if (debounceTimer.current) {
+        clearTimeout(debounceTimer.current);
+      }
     } catch (e) {
       setError(`Error stopping recognition: ${e instanceof Error ? e.message : String(e)}`);
     }

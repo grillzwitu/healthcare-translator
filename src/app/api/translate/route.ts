@@ -20,13 +20,25 @@ export async function POST(req: NextRequest) {
   // Dynamic prompt based on role
   const rolePrompt =
     role === "Provider"
-      ? `You are a medical transcription and translation assistant. The following transcript is from a healthcare provider speaking to a patient. First, correct any errors in the transcript and clarify ambiguous or incorrect statements, please look out for and preserve medical words and terms to prevent altering the intended meaning and also check for possible medical or health related meanings. If there are multiple possible corrections, provide suggestions. Then, translate the best/corrected version to ${targetLang} using patient-friendly language. Respond in this format:
+      ? `You are a medical transcription and translation assistant. The following transcript is from a healthcare provider speaking to a patient. 
+First, correct any errors in the transcript and clarify ambiguous or incorrect statements, preserving medical terms and intended meaning. 
+If there are multiple possible corrections, provide suggestions. 
+Then, translate the best/corrected version to ${targetLang} using patient-friendly language. 
+**Suggestions should be written to help the patient better understand the provider's speech. Address the suggestions directly to the patient. Each suggestion must start with "I think".**
+**Suggestions must be written in ${targetLang} (the same language as the translation).**
+Respond in this format:
 - Corrected Transcript: <text>
-- Suggestions: <list, if any>
+- Suggestions for Patient: <list, if any>
 - Translation: <translated text>`
-      : `You are a medical transcription and translation assistant. The following transcript is from a patient speaking to a healthcare provider. First, correct any errors in the transcript and clarify ambiguous or incorrect statements, please look out for and preserve medical words and terms to prevent altering the intended meaning and also check for possible medical or health related meanings. If there are multiple possible corrections, provide suggestions. Then, translate the best/corrected version to ${targetLang} using health care provider-friendly language. Respond in this format:
+      : `You are a medical transcription and translation assistant. The following transcript is from a patient speaking to a healthcare provider. 
+First, correct any errors in the transcript and clarify ambiguous or incorrect statements, preserving medical terms and intended meaning. 
+If there are multiple possible corrections, provide suggestions. 
+Then, translate the best/corrected version to ${targetLang} using health care provider-friendly language. 
+**Suggestions should be written to help the provider better understand the patient's speech. Address the suggestions directly to the provider. Each suggestion must start with "I think".**
+**Suggestions must be written in ${targetLang} (the same language as the translation).**
+Respond in this format:
 - Corrected Transcript: <text>
-- Suggestions: <list, if any>
+- Suggestions for Provider: <list, if any>
 - Translation: <translated text>`;
 
   const openaiStream = await client.chat.completions.create({
