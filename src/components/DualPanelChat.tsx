@@ -97,7 +97,7 @@ export default function DualPanelChat() {
   return (
     <main className="min-h-screen p-2 sm:p-4 bg-gray-50">
       <h1 className="text-2xl font-bold mb-4 text-center">Patient & Health Care Provider Translator</h1>
-      <div className="flex flex-col md:flex-row gap-4">
+      <div className="flex flex-col md:flex-row gap-4 md:justify-center">
         <Panel
           role="Patient"
           inputLang={patientInputLang}
@@ -128,7 +128,7 @@ export default function DualPanelChat() {
         />
       </div>
       <section className="mt-6 max-w-2xl mx-auto">
-        <h2 className="font-semibold mb-2">Conversation</h2>
+        <h2 className="font-semibold mb-2 md:text-center">Conversation</h2>
         <div className="flex flex-col gap-3">
           {processing && (
             <div className="flex items-center gap-2 text-blue-600">
@@ -142,38 +142,59 @@ export default function DualPanelChat() {
           {messages.map((msg, i) => (
             <div
               key={i}
-              className={`rounded p-3 shadow-sm ${
-                msg.sender === "Patient"
-                  ? "bg-blue-50 border-l-4 border-blue-400"
-                  : "bg-green-50 border-l-4 border-green-400"
-              }`}
+              className={`rounded p-3 shadow-sm max-w-xl text-left
+                ${
+                  msg.sender === "Patient"
+                    ? "bg-blue-50 border-l-4 border-blue-400 md:ml-auto"
+                    : "bg-green-50 border-l-4 border-green-400 md:mr-auto"
+                }
+              `}
+              style={{ width: "fit-content" }}
             >
-              <div className="mb-1 font-semibold">
+              <div className="mb-1 text-xs text-gray-500 font-normal">
                 {getRoleLabel(msg.sender)} ({getLanguageLabel(msg.inputLang)} → {getLanguageLabel(msg.targetLang)})
               </div>
-              {msg.corrected && (
-                <div>
-                  <strong>{msg.correctedHeading}</strong>: {msg.corrected}
+              {msg.suggestions && (
+                <div className="mb-2 p-2 rounded bg-yellow-50 border border-yellow-300">
+                  <div className="flex items-center gap-1 text-xs text-yellow-700 mb-1">
+                    <span>💡</span>
+                    <span>{msg.suggestionsHeading || "Suggestions"}</span>
+                  </div>
+                  <div className="text-xs text-yellow-900">
+                    {msg.suggestions}
+                  </div>
                 </div>
               )}
-              {msg.suggestions && (
-                <div>
-                  <strong>{msg.suggestionsHeading}</strong>: {msg.suggestions}
+              {msg.corrected && (
+                <div className="mb-2">
+                  <div className="flex items-center gap-1 text-xs text-blue-700 mb-1">
+                    <span>✏️</span>
+                    <span>{msg.correctedHeading || "Corrected Transcript"}</span>
+                  </div>
+                  <div className="bg-white border border-blue-100 rounded px-3 py-2 font-mono text-sm">
+                    {msg.corrected}
+                  </div>
                 </div>
               )}
               {msg.translation && (
-                <div>
-                  <strong>{msg.translationHeading}</strong>: {msg.translation}
-                  <button
-                    className="ml-2 text-xs bg-gray-200 px-2 py-1 rounded"
-                    onClick={() => {
-                      const utter = new window.SpeechSynthesisUtterance(msg.translation);
-                      utter.lang = msg.targetLang;
-                      window.speechSynthesis.speak(utter);
-                    }}
-                  >
-                    🔊
-                  </button>
+                <div className="mb-1">
+                  <div className="flex items-center gap-1 text-xs text-green-700 mb-1">
+                    <span>🌐</span>
+                    <span>{msg.translationHeading || "Translation"}</span>
+                  </div>
+                  <div className="bg-green-50 border border-green-100 rounded px-3 py-2 text-base">
+                    {msg.translation}
+                    <button
+                      className="ml-2 text-xs bg-gray-200 px-2 py-1 rounded"
+                      onClick={() => {
+                        const utter = new window.SpeechSynthesisUtterance(msg.translation);
+                        utter.lang = msg.targetLang;
+                        window.speechSynthesis.speak(utter);
+                      }}
+                    >
+                      🔊
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

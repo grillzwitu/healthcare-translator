@@ -56,7 +56,7 @@ The format must be:
 [
   { "Corrected Transcript in ${inputLang}": "<corrected transcript here in the input language>" },
   { "<translation of 'Corrected Transcript' in ${targetLang}>": "<corrected transcript here in the target language>" },
-  { "<translation of 'Suggestions for Patient' in ${targetLang}>": "<each suggestion as a bullet point, or 'None' if there are no suggestions>" },
+  { "<translation of 'Suggestions for Health Care Provider' in ${targetLang}>": "<each suggestion as a bullet point, or 'None' if there are no suggestions>" },
   { "<translation of 'Translation' in ${targetLang}>": "<translated text here>" }
 ]
 
