@@ -11,6 +11,8 @@ interface PanelProps {
   isListening: boolean;
   setIsListening: React.Dispatch<React.SetStateAction<boolean>>;
   onSend: (text: string) => void;
+  transcript: string;
+  setTranscript: (v: string) => void;
 }
 
 export default function Panel({
@@ -22,6 +24,8 @@ export default function Panel({
   isListening,
   setIsListening,
   onSend,
+  transcript,
+  setTranscript,
 }: PanelProps) {
   return (
     <div className="flex flex-col gap-2 border rounded p-4 bg-white shadow min-w-0">
@@ -51,6 +55,8 @@ export default function Panel({
         isListening={isListening}
         setIsListening={setIsListening}
         inputLang={inputLang}
+        transcript={transcript}
+        setTranscript={setTranscript}
       />
     </div>
   );

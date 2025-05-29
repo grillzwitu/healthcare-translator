@@ -1,11 +1,17 @@
 export function parseOpenAIResponse(resultText: string) {
-  const correctedMatch = resultText.match(/- Corrected Transcript:\s*([\s\S]*?)(?=- Suggestions:|$)/i);
-  const suggestionsMatch = resultText.match(/- Suggestions:\s*([\s\S]*?)(?=- Translation:|$)/i);
-  const translationMatch = resultText.match(/- Translation:\s*([\s\S]*)/i);
-
+  // Capture [Heading]: content pairs, preserving heading text
+  const sectionRegex = /\[([^\]]+)\]:\s*([\s\S]*?)(?=\n\[|$)/g;
+  const sections: { heading: string; content: string }[] = [];
+  let match;
+  while ((match = sectionRegex.exec(resultText)) !== null) {
+    sections.push({
+      heading: match[1].trim(),
+      content: match[2].trim(),
+    });
+  }
+  // For the input box, use the first section's content as the corrected transcript
   return {
-    corrected: correctedMatch ? correctedMatch[1].trim() : "",
-    suggestions: suggestionsMatch ? suggestionsMatch[1].trim() : "",
-    translation: translationMatch ? translationMatch[1].trim() : "",
+    sections,
+    corrected: sections[0]?.content || "",
   };
 }

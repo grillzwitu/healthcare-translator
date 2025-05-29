@@ -8,11 +8,12 @@ export default function SpeechToText({
   isListening: externalIsListening,
   setIsListening: externalSetIsListening,
   inputLang,
-}: SpeechToTextProps) {
+  transcript,         // <-- add
+  setTranscript,      // <-- add
+}: SpeechToTextProps & { transcript: string; setTranscript: (v: string) => void }) {
   const lastSubmittedTranscript = useRef<string>("");
 
   const handleFinalTranscript = (finalTranscript: string) => {
-    // Only submit if different from last submitted
     if (
       finalTranscript.trim() &&
       finalTranscript.trim() !== lastSubmittedTranscript.current
@@ -23,7 +24,7 @@ export default function SpeechToText({
   };
 
   const {
-    transcript,
+    transcript: localTranscript,
     speechDetected,
     error,
     isListening,
@@ -32,11 +33,30 @@ export default function SpeechToText({
     stopListening,
   } = useSpeechRecognition(inputLang, handleFinalTranscript);
 
+  // When the parent sets a new transcript (corrected), clear the local transcript
+  useEffect(() => {
+    if (transcript && transcript !== localTranscript) {
+      setTranscript(transcript); // ensure parent state is synced
+    }
+    // If the corrected transcript is set, clear the local transcript
+    // (so the input shows only the corrected, not the original)
+    // Optionally, you can clear the local transcript here if needed
+    // setTranscript(""); // Uncomment if you want to clear after correction
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [transcript]);
+
+  // When local transcript changes (from speech), update parent
+  useEffect(() => {
+    if (!transcript && localTranscript) {
+      setTranscript(localTranscript);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [localTranscript]);
+
   useEffect(() => {
     if (externalIsListening !== isListening) {
       externalSetIsListening(isListening);
     }
-    // Reset lastSubmittedTranscript when listening starts
     if (isListening) {
       lastSubmittedTranscript.current = "";
     }

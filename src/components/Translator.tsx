@@ -10,13 +10,16 @@ export default function Translator() {
   const [targetLang, setTargetLang] = useState("en-US");
   const [inputLang, setInputLang] = useState("en-US");
   const [isListening, setIsListening] = useState(false);
-  const [processing, setProcessing] = useState(false); // <-- Add this
+  const [processing, setProcessing] = useState(false);
+  const [transcript, setTranscript] = useState("");
+  const [sections, setSections] = useState<{ heading: string; content: string }[]>([]);
 
   const handleTranslate = async (text: string) => {
     setCorrection("");
     setSuggestions("");
     setTranslatedText("");
-    setProcessing(true); // <-- Start processing
+    setSections([]);
+    setProcessing(true);
     const res = await fetch("/api/translate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -25,7 +28,7 @@ export default function Translator() {
 
     if (!res.body) {
       setTranslatedText("No response body");
-      setProcessing(false); // <-- End processing
+      setProcessing(false);
       return;
     }
 
@@ -39,11 +42,10 @@ export default function Translator() {
       resultText += decoder.decode(value, { stream: true });
 
       const parsed = parseOpenAIResponse(resultText);
-      setCorrection(parsed.corrected);
-      setSuggestions(parsed.suggestions);
-      setTranslatedText(parsed.translation);
+      setSections(parsed.sections);
+      setTranscript(parsed.corrected); // For input box
     }
-    setProcessing(false); // <-- End processing
+    setProcessing(false);
   };
 
   const speak = () => {
@@ -77,6 +79,8 @@ export default function Translator() {
           isListening={isListening}
           setIsListening={setIsListening}
           inputLang={inputLang}
+          transcript={transcript}
+          setTranscript={setTranscript}
         />
       </section>
 
@@ -128,6 +132,16 @@ export default function Translator() {
             >
               Speak Translation
             </button>
+          </div>
+        )}
+        {sections.length > 0 && (
+          <div className="mt-4 flex flex-col gap-2">
+            {sections.map(({ heading, content }) => (
+              <div key={heading} className="p-2 border rounded">
+                <strong>{heading}</strong>
+                <div>{content}</div>
+              </div>
+            ))}
           </div>
         )}
       </section>

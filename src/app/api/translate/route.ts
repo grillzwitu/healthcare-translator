@@ -20,26 +20,44 @@ export async function POST(req: NextRequest) {
   // Dynamic prompt based on role
   const rolePrompt =
     role === "Provider"
-      ? `You are a medical transcription and translation assistant. The following transcript is from a healthcare provider speaking to a patient. 
-First, correct any errors in the transcript and clarify ambiguous or incorrect statements, preserving medical terms and intended meaning. 
-If there are multiple possible corrections, provide suggestions. 
-Then, translate the best/corrected version to ${targetLang} using patient-friendly language. 
-**Suggestions should be written to help the patient better understand the provider's speech. Address the suggestions directly to the patient. Each suggestion must start with "I think".**
-**Suggestions must be written in ${targetLang} (the same language as the translation).**
-Respond in this format:
-- Corrected Transcript: <text>
-- Suggestions for Patient: <list, if any>
-- Translation: <translated text>`
-      : `You are a medical transcription and translation assistant. The following transcript is from a patient speaking to a healthcare provider. 
-First, correct any errors in the transcript and clarify ambiguous or incorrect statements, preserving medical terms and intended meaning. 
-If there are multiple possible corrections, provide suggestions. 
-Then, translate the best/corrected version to ${targetLang} using health care provider-friendly language. 
-**Suggestions should be written to help the provider better understand the patient's speech. Address the suggestions directly to the provider. Each suggestion must start with "I think".**
-**Suggestions must be written in ${targetLang} (the same language as the translation).**
-Respond in this format:
-- Corrected Transcript: <text>
-- Suggestions for Provider: <list, if any>
-- Translation: <translated text>`;
+      ? `You are a medical transcription and translation assistant. The following transcript is from a healthcare provider speaking to a patient.
+First, correct any errors in the transcript and clarify ambiguous or incorrect statements, preserving medical terms and intended meaning.
+If there are multiple possible corrections, provide suggestions.
+Then, translate the best/corrected version to ${targetLang} using patient-friendly language.
+
+**Suggestions must help the patient understand what the provider is saying. Address the suggestions directly to the patient, never to yourself. Each suggestion must start with "I think the healthcare provider..." translated into ${targetLang}. Never refer to yourself as the provider or patient.**
+**Suggestions and all headings must be written in ${targetLang} (the same language as the translation).**
+
+Respond in this format, with each section starting on a new line and with headings in ${targetLang} (not English):
+
+[Translation of "Corrected Transcript" in ${targetLang}]:
+<corrected transcript here>
+
+[Translation of "Suggestions for Patient" in ${targetLang}]:
+<each suggestion as a bullet point, or "None" if there are no suggestions>
+
+[Translation of "Translation" in ${targetLang}]:
+<translated text here>
+`
+      : `You are a medical transcription and translation assistant. The following transcript is from a patient speaking to a healthcare provider.
+First, correct any errors in the transcript and clarify ambiguous or incorrect statements, preserving medical terms and intended meaning.
+If there are multiple possible corrections, provide suggestions.
+Then, translate the best/corrected version to ${targetLang} using health care provider-friendly language.
+
+**Suggestions must help the provider understand what the patient is saying. Address the suggestions directly to the provider, never to yourself. Each suggestion must start with "I think the patient..." translated into ${targetLang}. Never refer to yourself as the provider or patient.**
+**Suggestions and all headings must be written in ${targetLang} (the same language as the translation).**
+
+Respond in this format, with each section starting on a new line and with headings in ${targetLang} (not English):
+
+[Translation of "Corrected Transcript" in ${targetLang}]:
+<corrected transcript here>
+
+[Translation of "Suggestions for Provider" in ${targetLang}]:
+<each suggestion as a bullet point, or "None" if there are no suggestions>
+
+[Translation of "Translation" in ${targetLang}]:
+<translated text here>
+`;
 
   const openaiStream = await client.chat.completions.create({
     messages: [

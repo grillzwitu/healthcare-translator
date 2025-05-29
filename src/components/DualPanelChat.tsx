@@ -3,6 +3,7 @@ import Panel from "./Panel";
 import { LANGUAGES } from "@/constants/languages";
 import { Role, Message } from "@/types";
 import { parseOpenAIResponse } from "@/utils/parseOpenAIResponse";
+import { extractQuotedHeading } from "@/utils/extractQuotedHeading";
 
 export default function DualPanelChat() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -17,6 +18,10 @@ export default function DualPanelChat() {
   const [providerInputLang, setProviderInputLang] = useState("es-ES");
   const [providerTargetLang, setProviderTargetLang] = useState("en-US");
   const [providerListening, setProviderListening] = useState(false);
+
+  // Add transcript state for each panel
+  const [patientTranscript, setPatientTranscript] = useState("");
+  const [providerTranscript, setProviderTranscript] = useState("");
 
   // Handle sending a message from either side
   const handleSend = async (
@@ -44,15 +49,32 @@ export default function DualPanelChat() {
     let resultText = "";
     let decoder = new TextDecoder();
     let corrected = "", suggestions = "", translation = "";
+    // Store headings
+    var correctedHeading = "", suggestionsHeading = "", translationHeading = "";
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
       resultText += decoder.decode(value, { stream: true });
       const parsed = parseOpenAIResponse(resultText);
-      corrected = parsed.corrected;
-      suggestions = parsed.suggestions;
-      translation = parsed.translation;
+      const sections = parsed.sections;
+      corrected = sections[0]?.content || "";
+      suggestions = sections[1]?.content || "";
+      translation = sections[2]?.content || "";
+      // Store headings
+      correctedHeading = sections[0]?.heading || "";
+      suggestionsHeading = sections[1]?.heading || "";
+      translationHeading = sections[2]?.heading || "";
     }
+
+    // Set corrected transcript in the input
+    if (corrected) {
+      if (sender === "Patient") setPatientTranscript(corrected);
+      else setProviderTranscript(corrected);
+    } else {
+      if (sender === "Patient") setPatientTranscript("");
+      else setProviderTranscript("");
+    }
+
     setMessages(msgs => [
       ...msgs,
       {
@@ -63,6 +85,9 @@ export default function DualPanelChat() {
         corrected,
         suggestions,
         translation,
+        correctedHeading,
+        suggestionsHeading,
+        translationHeading,
       },
     ]);
     setProcessing(false); // <-- Done processing
@@ -83,6 +108,8 @@ export default function DualPanelChat() {
           onSend={text =>
             handleSend("Patient", text, patientInputLang, patientTargetLang)
           }
+          transcript={patientTranscript}
+          setTranscript={setPatientTranscript}
         />
         <Panel
           role="Provider"
@@ -95,6 +122,8 @@ export default function DualPanelChat() {
           onSend={text =>
             handleSend("Provider", text, providerInputLang, providerTargetLang)
           }
+          transcript={providerTranscript}
+          setTranscript={setProviderTranscript}
         />
       </div>
       <section className="mt-6 max-w-2xl mx-auto">
@@ -121,22 +150,20 @@ export default function DualPanelChat() {
               <div className="text-xs font-bold mb-1">
                 {msg.sender} ({LANGUAGES.find(l => l.code === msg.inputLang)?.label} → {LANGUAGES.find(l => l.code === msg.targetLang)?.label})
               </div>
-              <div>
-                <strong>Original:</strong> {msg.original}
-              </div>
+              
               {msg.corrected && (
                 <div>
-                  <strong>Corrected:</strong> {msg.corrected}
+                  <strong>{extractQuotedHeading(msg.correctedHeading || "Corrected Transcript")}</strong>: {msg.corrected}
                 </div>
               )}
               {msg.suggestions && (
                 <div>
-                  <strong>Suggestions:</strong> {msg.suggestions}
+                  <strong>{extractQuotedHeading(msg.suggestionsHeading || "Suggestions")}</strong>: {msg.suggestions}
                 </div>
               )}
               {msg.translation && (
                 <div>
-                  <strong>Translation:</strong> {msg.translation}
+                  <strong>{extractQuotedHeading(msg.translationHeading || "Translation")}</strong>: {msg.translation}
                   <button
                     className="ml-2 text-xs bg-gray-200 px-2 py-1 rounded"
                     onClick={() => {

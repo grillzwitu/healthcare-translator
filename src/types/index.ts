@@ -8,6 +8,9 @@ export interface Message {
   corrected: string;
   suggestions: string;
   translation: string;
+  correctedHeading?: string;
+  suggestionsHeading?: string;
+  translationHeading?: string;
 }
 
 export interface SpeechToTextProps {
