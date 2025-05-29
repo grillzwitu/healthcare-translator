@@ -3,11 +3,15 @@ import Panel from "./Panel";
 import { LANGUAGES } from "@/constants/languages";
 import { Role, Message } from "@/types";
 import { parseOpenAIResponse } from "@/utils/parseOpenAIResponse";
-import { extractQuotedHeading } from "@/utils/extractQuotedHeading";
+
+function getLanguageLabel(code: string) {
+  const lang = LANGUAGES.find(l => l.code === code);
+  return lang ? lang.label : code;
+}
 
 export default function DualPanelChat() {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [processing, setProcessing] = useState(false); // <-- Add this
+  const [processing, setProcessing] = useState(false);
 
   // Patient state
   const [patientInputLang, setPatientInputLang] = useState("en-US");
@@ -37,8 +41,9 @@ export default function DualPanelChat() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         text,
+        inputLang: inputLang.split("-")[0],
         targetLang: targetLang.split("-")[0],
-        role: sender, // <-- Pass the sender's role
+        role: sender,
       }),
     });
     if (!res.body) {
@@ -48,28 +53,20 @@ export default function DualPanelChat() {
     const reader = res.body.getReader();
     let resultText = "";
     let decoder = new TextDecoder();
-    let corrected = "", suggestions = "", translation = "";
-    // Store headings
-    var correctedHeading = "", suggestionsHeading = "", translationHeading = "";
+
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
       resultText += decoder.decode(value, { stream: true });
-      const parsed = parseOpenAIResponse(resultText);
-      const sections = parsed.sections;
-      corrected = sections[0]?.content || "";
-      suggestions = sections[1]?.content || "";
-      translation = sections[2]?.content || "";
-      // Store headings
-      correctedHeading = sections[0]?.heading || "";
-      suggestionsHeading = sections[1]?.heading || "";
-      translationHeading = sections[2]?.heading || "";
     }
 
-    // Set corrected transcript in the input
-    if (corrected) {
-      if (sender === "Patient") setPatientTranscript(corrected);
-      else setProviderTranscript(corrected);
+    // Parse the full response ONCE
+    const parsed = parseOpenAIResponse(resultText);
+
+    // Set corrected transcript in the input box (input language)
+    if (parsed.correctedInput) {
+      if (sender === "Patient") setPatientTranscript(parsed.correctedInput);
+      else setProviderTranscript(parsed.correctedInput);
     } else {
       if (sender === "Patient") setPatientTranscript("");
       else setProviderTranscript("");
@@ -82,20 +79,24 @@ export default function DualPanelChat() {
         inputLang,
         targetLang,
         original: text,
-        corrected,
-        suggestions,
-        translation,
-        correctedHeading,
-        suggestionsHeading,
-        translationHeading,
+        corrected: parsed.correctedTarget,
+        suggestions: parsed.suggestions,
+        translation: parsed.translation,
+        correctedHeading: parsed.correctedTargetHeading,
+        suggestionsHeading: parsed.suggestionsHeading,
+        translationHeading: parsed.translationHeading,
       },
     ]);
-    setProcessing(false); // <-- Done processing
+    setProcessing(false);
   };
+
+  function getRoleLabel(sender: Role) {
+    return sender === "Patient" ? "Patient" : "Health Care Provider";
+  }
 
   return (
     <main className="min-h-screen p-2 sm:p-4 bg-gray-50">
-      <h1 className="text-2xl font-bold mb-4 text-center">Patient-Provider Translator</h1>
+      <h1 className="text-2xl font-bold mb-4 text-center">Patient & Health Care Provider Translator</h1>
       <div className="flex flex-col md:flex-row gap-4">
         <Panel
           role="Patient"
@@ -147,23 +148,22 @@ export default function DualPanelChat() {
                   : "bg-green-50 border-l-4 border-green-400"
               }`}
             >
-              <div className="text-xs font-bold mb-1">
-                {msg.sender} ({LANGUAGES.find(l => l.code === msg.inputLang)?.label} → {LANGUAGES.find(l => l.code === msg.targetLang)?.label})
+              <div className="mb-1 font-semibold">
+                {getRoleLabel(msg.sender)} ({getLanguageLabel(msg.inputLang)} → {getLanguageLabel(msg.targetLang)})
               </div>
-              
               {msg.corrected && (
                 <div>
-                  <strong>{extractQuotedHeading(msg.correctedHeading || "Corrected Transcript")}</strong>: {msg.corrected}
+                  <strong>{msg.correctedHeading}</strong>: {msg.corrected}
                 </div>
               )}
               {msg.suggestions && (
                 <div>
-                  <strong>{extractQuotedHeading(msg.suggestionsHeading || "Suggestions")}</strong>: {msg.suggestions}
+                  <strong>{msg.suggestionsHeading}</strong>: {msg.suggestions}
                 </div>
               )}
               {msg.translation && (
                 <div>
-                  <strong>{extractQuotedHeading(msg.translationHeading || "Translation")}</strong>: {msg.translation}
+                  <strong>{msg.translationHeading}</strong>: {msg.translation}
                   <button
                     className="ml-2 text-xs bg-gray-200 px-2 py-1 rounded"
                     onClick={() => {

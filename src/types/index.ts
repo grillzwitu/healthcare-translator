@@ -19,3 +19,19 @@ export interface SpeechToTextProps {
   setIsListening: React.Dispatch<React.SetStateAction<boolean>>;
   inputLang: string;
 }
+
+export interface ParsedAIResponseSection {
+  heading: string;
+  content: string;
+}
+
+export interface ParsedAIResponse {
+  correctedInput: string;
+  correctedTarget: string;
+  correctedTargetHeading: string;
+  suggestions: string;
+  suggestionsHeading: string;
+  translation: string;
+  translationHeading: string;
+  sections: ParsedAIResponseSection[];
+}

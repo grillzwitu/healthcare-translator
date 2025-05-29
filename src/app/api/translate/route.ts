@@ -15,7 +15,7 @@ const client = new AzureOpenAI({
 });
 
 export async function POST(req: NextRequest) {
-  const { text, targetLang, role } = await req.json();
+  const { text, inputLang, targetLang, role } = await req.json(); // <-- add inputLang here
 
   // Dynamic prompt based on role
   const rolePrompt =
@@ -28,16 +28,18 @@ Then, translate the best/corrected version to ${targetLang} using patient-friend
 **Suggestions must help the patient understand what the provider is saying. Address the suggestions directly to the patient, never to yourself. Each suggestion must start with "I think the healthcare provider..." translated into ${targetLang}. Never refer to yourself as the provider or patient.**
 **Suggestions and all headings must be written in ${targetLang} (the same language as the translation).**
 
-Respond in this format, with each section starting on a new line and with headings in ${targetLang} (not English):
+Respond ONLY with a valid JSON array of objects, each with a single key (the heading in the target language) and value (the content). Do not include any extra text or explanation.
 
-[Translation of "Corrected Transcript" in ${targetLang}]:
-<corrected transcript here>
+The format must be:
 
-[Translation of "Suggestions for Patient" in ${targetLang}]:
-<each suggestion as a bullet point, or "None" if there are no suggestions>
+[
+  { "Corrected Transcript in ${inputLang}": "<corrected transcript here in the input language>" },
+  { "<translation of 'Corrected Transcript' in ${targetLang}>": "<corrected transcript here in the target language>" },
+  { "<translation of 'Suggestions for Patient' in ${targetLang}>": "<each suggestion as a bullet point, or 'None' if there are no suggestions>" },
+  { "<translation of 'Translation' in ${targetLang}>": "<translated text here>" }
+]
 
-[Translation of "Translation" in ${targetLang}]:
-<translated text here>
+Replace the keys with the correct headings in the target language, and fill in the values as described.
 `
       : `You are a medical transcription and translation assistant. The following transcript is from a patient speaking to a healthcare provider.
 First, correct any errors in the transcript and clarify ambiguous or incorrect statements, preserving medical terms and intended meaning.
@@ -47,16 +49,18 @@ Then, translate the best/corrected version to ${targetLang} using health care pr
 **Suggestions must help the provider understand what the patient is saying. Address the suggestions directly to the provider, never to yourself. Each suggestion must start with "I think the patient..." translated into ${targetLang}. Never refer to yourself as the provider or patient.**
 **Suggestions and all headings must be written in ${targetLang} (the same language as the translation).**
 
-Respond in this format, with each section starting on a new line and with headings in ${targetLang} (not English):
+Respond ONLY with a valid JSON array of objects, each with a single key (the heading in the target language) and value (the content). Do not include any extra text or explanation.
 
-[Translation of "Corrected Transcript" in ${targetLang}]:
-<corrected transcript here>
+The format must be:
 
-[Translation of "Suggestions for Provider" in ${targetLang}]:
-<each suggestion as a bullet point, or "None" if there are no suggestions>
+[
+  { "Corrected Transcript in ${inputLang}": "<corrected transcript here in the input language>" },
+  { "<translation of 'Corrected Transcript' in ${targetLang}>": "<corrected transcript here in the target language>" },
+  { "<translation of 'Suggestions for Patient' in ${targetLang}>": "<each suggestion as a bullet point, or 'None' if there are no suggestions>" },
+  { "<translation of 'Translation' in ${targetLang}>": "<translated text here>" }
+]
 
-[Translation of "Translation" in ${targetLang}]:
-<translated text here>
+Replace the keys with the correct headings in the target language, and fill in the values as described.
 `;
 
   const openaiStream = await client.chat.completions.create({

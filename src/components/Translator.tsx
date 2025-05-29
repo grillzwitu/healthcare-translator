@@ -42,8 +42,10 @@ export default function Translator() {
       resultText += decoder.decode(value, { stream: true });
 
       const parsed = parseOpenAIResponse(resultText);
-      setSections(parsed.sections);
-      setTranscript(parsed.corrected); // For input box
+      setCorrection(parsed.correctedTarget);
+      setSuggestions(parsed.suggestions);
+      setTranslatedText(parsed.translation);
+      setTranscript(parsed.correctedInput);
     }
     setProcessing(false);
   };
