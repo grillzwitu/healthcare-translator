@@ -1,6 +1,7 @@
 import { useState } from "react";
 import SpeechToText from "./SpeechToText";
-import { LANGUAGES } from "@/constants/languages"; // <-- Import here
+import { LANGUAGES } from "@/constants/languages";
+import { parseOpenAIResponse } from "@/utils/parseOpenAIResponse";
 
 export default function Translator() {
   const [translatedText, setTranslatedText] = useState("");
@@ -9,11 +10,13 @@ export default function Translator() {
   const [targetLang, setTargetLang] = useState("en-US");
   const [inputLang, setInputLang] = useState("en-US");
   const [isListening, setIsListening] = useState(false);
+  const [processing, setProcessing] = useState(false); // <-- Add this
 
   const handleTranslate = async (text: string) => {
     setCorrection("");
     setSuggestions("");
     setTranslatedText("");
+    setProcessing(true); // <-- Start processing
     const res = await fetch("/api/translate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -22,6 +25,7 @@ export default function Translator() {
 
     if (!res.body) {
       setTranslatedText("No response body");
+      setProcessing(false); // <-- End processing
       return;
     }
 
@@ -34,16 +38,12 @@ export default function Translator() {
       if (done) break;
       resultText += decoder.decode(value, { stream: true });
 
-      // Parse the streamed text for sections
-      // Use non-greedy matching and allow for streaming partials
-      const correctedMatch = resultText.match(/- Corrected Transcript:\s*([\s\S]*?)(?=- Suggestions:|$)/i);
-      const suggestionsMatch = resultText.match(/- Suggestions:\s*([\s\S]*?)(?=- Translation:|$)/i);
-      const translationMatch = resultText.match(/- Translation:\s*([\s\S]*)/i);
-
-      setCorrection(correctedMatch ? correctedMatch[1].trim() : "");
-      setSuggestions(suggestionsMatch ? suggestionsMatch[1].trim() : "");
-      setTranslatedText(translationMatch ? translationMatch[1].trim() : "");
+      const parsed = parseOpenAIResponse(resultText);
+      setCorrection(parsed.corrected);
+      setSuggestions(parsed.suggestions);
+      setTranslatedText(parsed.translation);
     }
+    setProcessing(false); // <-- End processing
   };
 
   const speak = () => {
@@ -95,6 +95,16 @@ export default function Translator() {
             <option key={l.code} value={l.code}>{l.label}</option>
           ))}
         </select>
+
+        {processing && (
+          <div className="flex items-center gap-2 text-blue-600 mb-2">
+            <svg className="animate-spin h-5 w-5 text-blue-600" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+            </svg>
+            Processing...
+          </div>
+        )}
 
         {correction && (
           <div className="mt-4 p-2 border rounded bg-blue-50">

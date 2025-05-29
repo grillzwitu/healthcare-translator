@@ -15,20 +15,25 @@ const client = new AzureOpenAI({
 });
 
 export async function POST(req: NextRequest) {
-  const { text, targetLang } = await req.json();
+  const { text, targetLang, role } = await req.json();
+
+  // Dynamic prompt based on role
+  const rolePrompt =
+    role === "Provider"
+      ? `You are a medical transcription and translation assistant. The following transcript is from a healthcare provider speaking to a patient. First, correct any errors in the transcript and clarify ambiguous or incorrect statements, please look out for and preserve medical words and terms to prevent altering the intended meaning and also check for possible medical or health related meanings. If there are multiple possible corrections, provide suggestions. Then, translate the best/corrected version to ${targetLang} using patient-friendly language. Respond in this format:
+- Corrected Transcript: <text>
+- Suggestions: <list, if any>
+- Translation: <translated text>`
+      : `You are a medical transcription and translation assistant. The following transcript is from a patient speaking to a healthcare provider. First, correct any errors in the transcript and clarify ambiguous or incorrect statements, please look out for and preserve medical words and terms to prevent altering the intended meaning and also check for possible medical or health related meanings. If there are multiple possible corrections, provide suggestions. Then, translate the best/corrected version to ${targetLang} using health care provider-friendly language. Respond in this format:
+- Corrected Transcript: <text>
+- Suggestions: <list, if any>
+- Translation: <translated text>`;
 
   const openaiStream = await client.chat.completions.create({
     messages: [
       {
         role: "system",
-        content: `You are a medical transcription and translation assistant. 
-        First, correct any errors in the following transcript and clarify ambiguous or incorrect statements. 
-        If there are multiple possible corrections, provide suggestions. 
-        Then, translate the best/corrected version to ${targetLang} using patient-friendly language. 
-        Respond in this format:
-        - Corrected Transcript: <text>
-        - Suggestions: <list, if any>
-        - Translation: <translated text>`,
+        content: rolePrompt,
       },
       { role: "user", content: text },
     ],

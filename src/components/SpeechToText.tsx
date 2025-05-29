@@ -1,108 +1,46 @@
 "use client";
-import { Dispatch, SetStateAction, useRef, useState } from "react";
-
-interface SpeechToTextProps {
-  onTranscript: (text: string) => void | Promise<void>;
-  isListening: boolean;
-  setIsListening: Dispatch<SetStateAction<boolean>>;
-  inputLang: string; // <-- Add this
-}
-
-type MySpeechRecognitionEvent = {
-  results: Array<Array<{ transcript: string }>>;
-};
+import { SpeechToTextProps } from "@/types";
+import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
+import { useEffect, useRef } from "react";
 
 export default function SpeechToText({
   onTranscript,
-  isListening,
-  setIsListening,
-  inputLang, // <-- Add this
+  isListening: externalIsListening,
+  setIsListening: externalSetIsListening,
+  inputLang,
 }: SpeechToTextProps) {
-  const [transcript, setTranscript] = useState("");
-  const [speechDetected, setSpeechDetected] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const lastSubmittedTranscript = useRef<string>("");
 
-  const startListening = () => {
-    try {
-      const SpeechRecognitionConstructor =
-        window.SpeechRecognition || window.webkitSpeechRecognition;
-
-      if (!SpeechRecognitionConstructor) {
-        throw new Error("Speech recognition is not supported in this browser.");
-      }
-
-      if (isListening) {
-        throw new Error("Already listening. Stop current session first.");
-      }
-
-      const recognition = new SpeechRecognitionConstructor();
-      recognition.lang = inputLang;
-      recognition.continuous = true;
-      recognition.interimResults = true; // <-- Enable interim results
-
-      let fullTranscript = "";
-
-      recognition.onresult = (event: SpeechRecognitionEvent) => {
-        let interimTranscript = "";
-        for (let i = event.resultIndex; i < event.results.length; ++i) {
-          const result = event.results[i]; // SpeechRecognitionResult
-          const transcriptPiece = result[0].transcript;
-          if (result.isFinal) {
-            fullTranscript += transcriptPiece + " ";
-          } else {
-            interimTranscript += transcriptPiece;
-          }
-        }
-        setTranscript(fullTranscript + interimTranscript);
-        onTranscript(fullTranscript + interimTranscript);
-      };
-
-      recognition.onerror = (event) => {
-        let errorMessage = "Speech recognition error occurred";
-        if (event.error === 'no-speech') {
-          errorMessage = "No speech was detected";
-        } else if (event.error === 'audio-capture') {
-          errorMessage = "Audio capture failed - check microphone permissions";
-        } else if (event.error === 'not-allowed') {
-          errorMessage = "Microphone access was denied";
-        }
-        setError(errorMessage);
-        setIsListening(false);
-        setSpeechDetected(false);
-      };
-
-      recognition.onspeechstart = () => setSpeechDetected(true);
-      recognition.onspeechend = () => setSpeechDetected(false);
-      recognition.onend = () => {
-        setIsListening(false);
-        setSpeechDetected(false);
-      };
-
-      recognition.start();
-      recognitionRef.current = recognition;
-      setIsListening(true);
-      setError(null); // Clear previous errors on new session
-    } catch (e) {
-      setError(`Failed to start speech recognition: ${e instanceof Error ? e.message : String(e)}`);
-      setIsListening(false);
+  const handleFinalTranscript = (finalTranscript: string) => {
+    // Only submit if different from last submitted
+    if (
+      finalTranscript.trim() &&
+      finalTranscript.trim() !== lastSubmittedTranscript.current
+    ) {
+      lastSubmittedTranscript.current = finalTranscript.trim();
+      onTranscript(finalTranscript.trim());
     }
   };
 
-  const stopListening = () => {
-    try {
-      if (!recognitionRef.current) {
-        throw new Error("No active recognition session");
-      }
-      
-      recognitionRef.current.stop();
-      setIsListening(false);
-      setSpeechDetected(false);
-      setError(null);
-    } catch (e) {
-      setError(`Error stopping recognition: ${e instanceof Error ? e.message : String(e)}`);
+  const {
+    transcript,
+    speechDetected,
+    error,
+    isListening,
+    setIsListening,
+    startListening,
+    stopListening,
+  } = useSpeechRecognition(inputLang, handleFinalTranscript);
+
+  useEffect(() => {
+    if (externalIsListening !== isListening) {
+      externalSetIsListening(isListening);
     }
-  };
+    // Reset lastSubmittedTranscript when listening starts
+    if (isListening) {
+      lastSubmittedTranscript.current = "";
+    }
+  }, [isListening, externalIsListening, externalSetIsListening]);
 
   return (
     <div className="p-4 flex flex-col gap-2">
@@ -131,13 +69,11 @@ export default function SpeechToText({
           {speechDetected ? "Speech Detected" : "No Speech"}
         </button>
       </div>
-      
       {error && (
         <div className="mt-2 p-2 bg-red-100 text-red-700 rounded">
           Error: {error}
         </div>
       )}
-      
       <div className="mt-4 p-2 border rounded min-h-12">
         {transcript || <span className="text-gray-400">Transcript will appear here...</span>}
       </div>

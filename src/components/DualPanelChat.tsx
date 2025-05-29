@@ -1,73 +1,12 @@
 import { useState } from "react";
-import SpeechToText from "./SpeechToText";
-import { LANGUAGES } from "@/constants/languages"; // <-- Import here
-
-type Role = "Patient" | "Provider";
-
-interface Message {
-  sender: Role;
-  inputLang: string;
-  targetLang: string;
-  original: string;
-  corrected: string;
-  suggestions: string;
-  translation: string;
-}
-
-function Panel({
-  role,
-  inputLang,
-  setInputLang,
-  targetLang,
-  setTargetLang,
-  isListening,
-  setIsListening,
-  onSend,
-}: {
-  role: Role;
-  inputLang: string;
-  setInputLang: (v: string) => void;
-  targetLang: string;
-  setTargetLang: (v: string) => void;
-  isListening: boolean;
-  setIsListening: React.Dispatch<React.SetStateAction<boolean>>;
-  onSend: (text: string) => void;
-}) {
-  return (
-    <div className="flex flex-col gap-2 border rounded p-4 bg-white shadow min-w-0">
-      <div className="font-bold text-lg mb-2">{role}</div>
-      <label className="font-semibold">Input Language</label>
-      <select
-        value={inputLang}
-        onChange={e => setInputLang(e.target.value)}
-        className="p-2 border rounded mb-2"
-      >
-        {LANGUAGES.map(l => (
-          <option key={l.code} value={l.code}>{l.label}</option>
-        ))}
-      </select>
-      <label className="font-semibold">Target Language</label>
-      <select
-        value={targetLang}
-        onChange={e => setTargetLang(e.target.value)}
-        className="p-2 border rounded mb-2"
-      >
-        {LANGUAGES.map(l => (
-          <option key={l.code} value={l.code}>{l.label}</option>
-        ))}
-      </select>
-      <SpeechToText
-        onTranscript={onSend}
-        isListening={isListening}
-        setIsListening={setIsListening}
-        inputLang={inputLang}
-      />
-    </div>
-  );
-}
+import Panel from "./Panel";
+import { LANGUAGES } from "@/constants/languages";
+import { Role, Message } from "@/types";
+import { parseOpenAIResponse } from "@/utils/parseOpenAIResponse";
 
 export default function DualPanelChat() {
   const [messages, setMessages] = useState<Message[]>([]);
+  const [processing, setProcessing] = useState(false); // <-- Add this
 
   // Patient state
   const [patientInputLang, setPatientInputLang] = useState("en-US");
@@ -87,13 +26,20 @@ export default function DualPanelChat() {
     targetLang: string
   ) => {
     if (!text.trim()) return;
-    // Call translation API
+    setProcessing(true);
     const res = await fetch("/api/translate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text, targetLang: targetLang.split("-")[0] }),
+      body: JSON.stringify({
+        text,
+        targetLang: targetLang.split("-")[0],
+        role: sender, // <-- Pass the sender's role
+      }),
     });
-    if (!res.body) return;
+    if (!res.body) {
+      setProcessing(false);
+      return;
+    }
     const reader = res.body.getReader();
     let resultText = "";
     let decoder = new TextDecoder();
@@ -102,12 +48,10 @@ export default function DualPanelChat() {
       const { done, value } = await reader.read();
       if (done) break;
       resultText += decoder.decode(value, { stream: true });
-      const correctedMatch = resultText.match(/- Corrected Transcript:\s*([\s\S]*?)(?=- Suggestions:|$)/i);
-      const suggestionsMatch = resultText.match(/- Suggestions:\s*([\s\S]*?)(?=- Translation:|$)/i);
-      const translationMatch = resultText.match(/- Translation:\s*([\s\S]*)/i);
-      corrected = correctedMatch ? correctedMatch[1].trim() : "";
-      suggestions = suggestionsMatch ? suggestionsMatch[1].trim() : "";
-      translation = translationMatch ? translationMatch[1].trim() : "";
+      const parsed = parseOpenAIResponse(resultText);
+      corrected = parsed.corrected;
+      suggestions = parsed.suggestions;
+      translation = parsed.translation;
     }
     setMessages(msgs => [
       ...msgs,
@@ -121,14 +65,13 @@ export default function DualPanelChat() {
         translation,
       },
     ]);
+    setProcessing(false); // <-- Done processing
   };
 
-  // Responsive layout: stack on mobile, side-by-side on desktop
   return (
     <main className="min-h-screen p-2 sm:p-4 bg-gray-50">
       <h1 className="text-2xl font-bold mb-4 text-center">Patient-Provider Translator</h1>
       <div className="flex flex-col md:flex-row gap-4">
-        {/* Patient Panel */}
         <Panel
           role="Patient"
           inputLang={patientInputLang}
@@ -136,12 +79,11 @@ export default function DualPanelChat() {
           targetLang={patientTargetLang}
           setTargetLang={setPatientTargetLang}
           isListening={patientListening}
-          setIsListening={setPatientListening} // <-- Pass the setter directly
+          setIsListening={setPatientListening}
           onSend={text =>
             handleSend("Patient", text, patientInputLang, patientTargetLang)
           }
         />
-        {/* Provider Panel */}
         <Panel
           role="Provider"
           inputLang={providerInputLang}
@@ -149,16 +91,24 @@ export default function DualPanelChat() {
           targetLang={providerTargetLang}
           setTargetLang={setProviderTargetLang}
           isListening={providerListening}
-          setIsListening={setProviderListening} // <-- Pass the setter directly
+          setIsListening={setProviderListening}
           onSend={text =>
             handleSend("Provider", text, providerInputLang, providerTargetLang)
           }
         />
       </div>
-      {/* Shared Conversation History */}
       <section className="mt-6 max-w-2xl mx-auto">
         <h2 className="font-semibold mb-2">Conversation</h2>
         <div className="flex flex-col gap-3">
+          {processing && (
+            <div className="flex items-center gap-2 text-blue-600">
+              <svg className="animate-spin h-5 w-5 text-blue-600" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+              </svg>
+              Processing...
+            </div>
+          )}
           {messages.map((msg, i) => (
             <div
               key={i}
