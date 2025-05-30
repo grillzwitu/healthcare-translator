@@ -147,7 +147,7 @@ export default function DualPanelChat() {
   return (
     <main className="min-h-screen p-2 sm:p-4 bg-gray-50">
       <h1 className="text-2xl font-bold mb-4 text-center">
-        Patient & Health Care Provider Translator
+        Healthcare Translator
       </h1>
       {/* Input panels: do not change their position */}
       <div className="flex flex-col md:flex-row gap-4 md:justify-center">

@@ -7,6 +7,12 @@ It provides a secure, dual-panel chat interface for real-time translation and co
 
 ---
 
+## Live Demo
+
+Try the app here: [https://healthcare-translator-sand.vercel.app/](https://healthcare-translator-sand.vercel.app/)
+
+---
+
 ## Getting Started
 
 First, run the development server:
@@ -78,6 +84,9 @@ global.d.ts              # Global TS types for browser APIs (with error handling
 
 ## Security & Privacy Considerations
 
+- **Hosted on Vercel:**  
+  The app is deployed on [Vercel](https://vercel.com/), which automatically enforces HTTPS and provides secure hosting by default.
+
 - **No Data Persistence:**  
   No chat or transcript data is stored on disk or in a database. All data is in-memory and cleared on reload.
 
@@ -93,6 +102,7 @@ global.d.ts              # Global TS types for browser APIs (with error handling
   - All HTTP requests are redirected to HTTPS in production.
   - HSTS headers are set for strict transport security.
   - See `src/middleware.ts`.
+  - **Note:** Vercel automatically enforces HTTPS for all deployments.
 
 - **Privacy & Consent Notice:**  
   - Users must accept a privacy and consent modal before using the app.
