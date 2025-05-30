@@ -2,7 +2,14 @@ import { useState } from "react";
 import SpeechToText from "./SpeechToText";
 import { LANGUAGES } from "@/constants/languages";
 import { parseOpenAIResponse } from "@/utils/parseOpenAIResponse";
+import TranslationOutput from "./TranslationOutput";
 
+/**
+ * Translator component provides a simple translation interface
+ * with speech-to-text input, language selection, and displays
+ * corrected transcript, suggestions, and translation.
+ * Includes detailed error handling and error codes for debugging.
+ */
 export default function Translator() {
   const [translatedText, setTranslatedText] = useState("");
   const [correction, setCorrection] = useState("");
@@ -14,47 +21,123 @@ export default function Translator() {
   const [transcript, setTranscript] = useState("");
   const [sections, setSections] = useState<{ heading: string; content: string }[]>([]);
 
+  /**
+   * Handles translation by sending the transcript to the API,
+   * reading the streamed response, and updating UI state.
+   * Includes error handling with error codes and HTTP status codes for easier debugging.
+   * @param text - The text to translate
+   */
   const handleTranslate = async (text: string) => {
     setCorrection("");
     setSuggestions("");
     setTranslatedText("");
     setSections([]);
     setProcessing(true);
-    const res = await fetch("/api/translate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text, targetLang: targetLang.split("-")[0] }),
-    });
 
-    if (!res.body) {
-      setTranslatedText("No response body");
+    let res: Response | undefined;
+    try {
+      res = await fetch("/api/translate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          text,
+          inputLang: inputLang.split("-")[0],
+          targetLang: targetLang.split("-")[0],
+        }),
+      });
+    } catch (err) {
       setProcessing(false);
+      console.error("[TR-001] Network error during translation fetch:", err);
+      setTranslatedText("Network error: Unable to reach the translation service. [TR-001]");
       return;
     }
 
+    if (!res || !res.body) {
+      setProcessing(false);
+      console.error("[TR-002] No response body received from translation API.");
+      setTranslatedText("Error: No response from translation service. [TR-002]");
+      return;
+    }
+
+    if (!res.ok) {
+      setProcessing(false);
+      let errorMsg = `Translation service error. [TR-003] (HTTP ${res.status})`;
+      try {
+        errorMsg = `[TR-003] (HTTP ${res.status}) ${await res.text()}`;
+      } catch (e) {
+        // Ignore parsing error, use default message
+      }
+      console.error("[TR-003] Translation API error:", errorMsg);
+      setTranslatedText(errorMsg);
+      return;
+    }
+
+    // Read the streamed response
     const reader = res.body.getReader();
     let resultText = "";
-    let decoder = new TextDecoder();
+    const decoder = new TextDecoder();
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      resultText += decoder.decode(value, { stream: true });
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        resultText += decoder.decode(value, { stream: true });
 
+        // Try parsing the response as it streams in
+        try {
+          const parsed = parseOpenAIResponse(resultText);
+          setCorrection(parsed.correctedTarget);
+          setSuggestions(parsed.suggestions);
+          setTranslatedText(parsed.translation);
+          setTranscript(parsed.correctedInput);
+        } catch (parseErr) {
+          // It's normal for parse to fail until the stream is complete, so only log for debugging
+          // console.debug("[TR-004] Partial stream parse error (may be expected):", parseErr);
+        }
+      }
+    } catch (err) {
+      setProcessing(false);
+      console.error("[TR-005] Error reading translation stream:", err);
+      setTranslatedText("Error reading translation response. [TR-005]");
+      return;
+    }
+
+    // Final parse after stream is complete
+    try {
       const parsed = parseOpenAIResponse(resultText);
       setCorrection(parsed.correctedTarget);
       setSuggestions(parsed.suggestions);
       setTranslatedText(parsed.translation);
       setTranscript(parsed.correctedInput);
+      // If you want to show all sections, you can setSections here
+      // setSections(parsed.sections || []);
+    } catch (err) {
+      setProcessing(false);
+      console.error("[TR-006] Error parsing translation response:", err);
+      setTranslatedText("Error parsing translation response. [TR-006]");
+      return;
     }
+
     setProcessing(false);
   };
 
+  /**
+   * Plays the translated text using the browser's SpeechSynthesis API.
+   * Includes error handling for unsupported browsers or failures.
+   */
   const speak = () => {
     if (!translatedText) return;
-    const utterance = new window.SpeechSynthesisUtterance(translatedText);
-    utterance.lang = targetLang;
-    window.speechSynthesis.speak(utterance);
+    try {
+      if (!("speechSynthesis" in window)) {
+        console.error("[TR-007] Speech synthesis is not supported in this browser.");
+        return;
+      }
+      const utterance = new window.SpeechSynthesisUtterance(translatedText);
+      utterance.lang = targetLang;
+      window.speechSynthesis.speak(utterance);
+    } catch (err) {
+      console.error("[TR-008] Failed to play translation audio:", err);
+    }
   };
 
   return (
@@ -87,66 +170,14 @@ export default function Translator() {
       </section>
 
       {/* Output Section */}
-      <section>
-        <label htmlFor="output-lang" className="block mb-1 font-semibold">
-          Output Language
-        </label>
-        <select
-          id="output-lang"
-          value={targetLang}
-          onChange={(e) => setTargetLang(e.target.value)}
-          className="p-2 border rounded mb-4"
-        >
-          {LANGUAGES.map(l => (
-            <option key={l.code} value={l.code}>{l.label}</option>
-          ))}
-        </select>
-
-        {processing && (
-          <div className="flex items-center gap-2 text-blue-600 mb-2">
-            <svg className="animate-spin h-5 w-5 text-blue-600" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
-            </svg>
-            Processing...
-          </div>
-        )}
-
-        {correction && (
-          <div className="mt-4 p-2 border rounded bg-blue-50">
-            <strong>Corrected Transcript:</strong>
-            <div>{correction}</div>
-          </div>
-        )}
-        {suggestions && (
-          <div className="mt-2 p-2 border rounded bg-yellow-50">
-            <strong>Suggestions:</strong>
-            <div>{suggestions}</div>
-          </div>
-        )}
-        {translatedText && (
-          <div className="mt-2 p-2 border rounded bg-green-50">
-            <strong>Translation:</strong>
-            <div>{translatedText}</div>
-            <button
-              onClick={speak}
-              className="mt-2 bg-green-500 text-white p-2 rounded"
-            >
-              Speak Translation
-            </button>
-          </div>
-        )}
-        {sections.length > 0 && (
-          <div className="mt-4 flex flex-col gap-2">
-            {sections.map(({ heading, content }) => (
-              <div key={heading} className="p-2 border rounded">
-                <strong>{heading}</strong>
-                <div>{content}</div>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
+      <TranslationOutput
+        correction={correction}
+        suggestions={suggestions}
+        translatedText={translatedText}
+        processing={processing}
+        speak={speak}
+        sections={sections}
+      />
     </main>
   );
 }

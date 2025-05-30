@@ -1,5 +1,15 @@
 import { useRef, useState } from "react";
+import { getSpeechRecognitionErrorMessage } from "./speechRecognitionErrors";
 
+/**
+ * Custom React hook for speech recognition using the Web Speech API.
+ * Handles transcript accumulation, error reporting, and speech detection.
+ * Includes detailed error handling, error codes, and Web Speech API error codes for debugging.
+ *
+ * @param inputLang - The language code for recognition (IETF BCP 47)
+ * @param onFinalTranscript - Callback for when a final transcript is ready
+ * @returns Speech recognition state and control functions
+ */
 export function useSpeechRecognition(
   inputLang: string,
   onFinalTranscript: (text: string) => void | Promise<void>
@@ -12,17 +22,27 @@ export function useSpeechRecognition(
   const debounceTimer = useRef<NodeJS.Timeout | null>(null);
   const fullTranscriptRef = useRef(""); // Accumulate all final results
 
+  /**
+   * Starts the speech recognition session.
+   * Handles browser support, session state, and error reporting.
+   * Uses Web Speech API error codes and custom error codes for debugging.
+   */
   const startListening = () => {
     try {
       const SpeechRecognitionConstructor =
         window.SpeechRecognition || window.webkitSpeechRecognition;
 
       if (!SpeechRecognitionConstructor) {
-        throw new Error("Speech recognition is not supported in this browser.");
+        // Error code: SR-001
+        setError("[SR-001] Speech recognition is not supported in this browser.");
+        setIsListening(false);
+        return;
       }
 
       if (isListening) {
-        throw new Error("Already listening. Stop current session first.");
+        // Error code: SR-002
+        setError("[SR-002] Already listening. Stop current session first.");
+        return;
       }
 
       const recognition = new SpeechRecognitionConstructor();
@@ -52,23 +72,25 @@ export function useSpeechRecognition(
           if (debounceTimer.current) clearTimeout(debounceTimer.current);
           debounceTimer.current = setTimeout(() => {
             if (fullTranscriptRef.current.trim()) {
-              onFinalTranscript(fullTranscriptRef.current.trim());
+              try {
+                onFinalTranscript(fullTranscriptRef.current.trim());
+              } catch (err) {
+                // Error code: SR-003
+                setError(
+                  `[SR-003] Error in onFinalTranscript callback: ${
+                    err instanceof Error ? err.message : String(err)
+                  }`
+                );
+              }
               fullTranscriptRef.current = "";
               setTranscript("");
             }
-          }, 1500); // 1.5 seconds after last final result
+          }, 1000); // 1 second after last final result
         }
       };
 
       recognition.onerror = (event) => {
-        let errorMessage = "Speech recognition error occurred";
-        if (event.error === 'no-speech') {
-          errorMessage = "No speech was detected";
-        } else if (event.error === 'audio-capture') {
-          errorMessage = "Audio capture failed - check microphone permissions";
-        } else if (event.error === 'not-allowed') {
-          errorMessage = "Microphone access was denied";
-        }
+        const errorMessage = getSpeechRecognitionErrorMessage(event.error);
         setError(errorMessage);
         setIsListening(false);
         setSpeechDetected(false);
@@ -86,7 +108,16 @@ export function useSpeechRecognition(
           clearTimeout(debounceTimer.current);
         }
         if (fullTranscriptRef.current.trim()) {
-          onFinalTranscript(fullTranscriptRef.current.trim());
+          try {
+            onFinalTranscript(fullTranscriptRef.current.trim());
+          } catch (err) {
+            // Error code: SR-007
+            setError(
+              `[SR-007] Error in onFinalTranscript callback (onend): ${
+                err instanceof Error ? err.message : String(err)
+              }`
+            );
+          }
           fullTranscriptRef.current = "";
           setTranscript("");
         }
@@ -97,15 +128,25 @@ export function useSpeechRecognition(
       setIsListening(true);
       setError(null);
     } catch (e) {
-      setError(`Failed to start speech recognition: ${e instanceof Error ? e.message : String(e)}`);
+      setError(
+        `[SR-008] Failed to start speech recognition: ${
+          e instanceof Error ? e.message : String(e)
+        }`
+      );
       setIsListening(false);
     }
   };
 
+  /**
+   * Stops the speech recognition session.
+   * Handles session state and error reporting.
+   */
   const stopListening = () => {
     try {
       if (!recognitionRef.current) {
-        throw new Error("No active recognition session");
+        // Error code: SR-009
+        setError("[SR-009] No active recognition session");
+        return;
       }
       recognitionRef.current.stop();
       setIsListening(false);
@@ -115,7 +156,11 @@ export function useSpeechRecognition(
         clearTimeout(debounceTimer.current);
       }
     } catch (e) {
-      setError(`Error stopping recognition: ${e instanceof Error ? e.message : String(e)}`);
+      setError(
+        `[SR-010] Error stopping recognition: ${
+          e instanceof Error ? e.message : String(e)
+        }`
+      );
     }
   };
 
