@@ -1,6 +1,6 @@
 # Healthcare Translator
 
-![Healthcare Translator Demo](./assets/demo-screenshot.png)
+![Healthcare Translator Demo](./public/assets/demo-screenshot.png)
 
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).  
 It provides a secure, dual-panel chat interface for real-time translation and correction between patients and healthcare providers, leveraging Azure OpenAI.
