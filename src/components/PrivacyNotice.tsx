@@ -30,7 +30,7 @@ export default function PrivacyNotice() {
           <br /><br />
           All data you enter is processed for translation and correction using Azure OpenAI services. No data is stored after your session ends.
           <br /><br />
-          By clicking "Accept", you acknowledge and consent to this processing.
+          By clicking &quot;Accept&quot;, you acknowledge and consent to this processing.
         </p>
         <button
           className="bg-blue-600 text-white px-4 py-2 rounded"
