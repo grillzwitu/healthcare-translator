@@ -56,7 +56,6 @@ export default function SpeechToText({
     speechDetected,
     error,
     isListening,
-    setIsListening,
     startListening,
     stopListening,
   } = useSpeechRecognition(inputLang, handleFinalTranscript);

@@ -1,19 +1,8 @@
 import { useState } from "react";
 import Panel from "./Panel";
-import { LANGUAGES } from "@/constants/languages";
 import { Role, Message } from "@/types";
 import { parseOpenAIResponse } from "@/utils/parseOpenAIResponse";
 import ChatMessage from "./ChatMessage";
-
-/**
- * Returns the display label for a language code.
- * @param code - The language code (e.g., "en-US").
- * @returns The language label or the code if not found.
- */
-function getLanguageLabel(code: string) {
-  const lang = LANGUAGES.find(l => l.code === code);
-  return lang ? lang.label : code;
-}
 
 /**
  * DualPanelChat component manages the state and logic for the dual-panel
@@ -90,7 +79,7 @@ export default function DualPanelChat() {
       let errorMsg = "Translation service error.";
       try {
         errorMsg = await res.text();
-      } catch (e) {
+      } catch {
         // Ignore parsing error, use default message
       }
       console.error("Translation API error:", errorMsg);
@@ -155,19 +144,10 @@ export default function DualPanelChat() {
     setProcessing(false);
   };
 
-  /**
-   * Returns the display label for a role.
-   * @param sender - The sender role ("Patient" or "Provider")
-   * @returns The display label for the role.
-   */
-  function getRoleLabel(sender: Role) {
-    return sender === "Patient" ? "Patient" : "Health Care Provider";
-  }
-
   return (
     <main className="min-h-screen p-2 sm:p-4 bg-gray-50">
       <h1 className="text-2xl font-bold mb-4 text-center">
-        Patient & Health Care Provider Translator
+        Healthcare Translator
       </h1>
       {/* Input panels: do not change their position */}
       <div className="flex flex-col md:flex-row gap-4 md:justify-center">

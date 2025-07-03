@@ -1,6 +1,6 @@
+import { LANGUAGES } from "@/constants/languages";
 import { NextRequest } from "next/server";
 import { AzureOpenAI } from "openai";
-import { LANGUAGES } from "@/constants/languages";
 
 /**
  * POST handler for translation and correction requests.
@@ -21,7 +21,7 @@ import { LANGUAGES } from "@/constants/languages";
 const endpoint = process.env.AZURE_OPENAI_ENDPOINT!;
 const apiKey = process.env.AZURE_OPENAI_API_KEY!;
 const deployment = process.env.AZURE_OPENAI_DEPLOYMENT_NAME!;
-const apiVersion = "2024-04-01-preview";
+const apiVersion = "2025-01-01-preview";
 const modelName = deployment;
 
 const client = new AzureOpenAI({
@@ -142,24 +142,28 @@ Replace the keys with the correct headings in the target language, and fill in t
           },
           { role: "user", content: sanitizedText },
         ],
-        max_completion_tokens: 800,
-        temperature: 0.3,
+        max_completion_tokens: 2000,
+        temperature: 0,
         top_p: 1,
         frequency_penalty: 0,
         presence_penalty: 0,
         model: modelName,
         stream: true,
       });
-    } catch (err: any) {
+    } catch (err) {
       // Azure OpenAI error handling
-      if (err?.response) {
-        // Azure OpenAI error with response
-        const errorBody = await err.response.text();
-        console.error("[API-006] Azure OpenAI API error:", err.response.status, errorBody);
-        return new Response(
-          `OpenAI API error (${err.response.status}) [API-006]: ${errorBody}`,
-          { status: err.response.status }
-        );
+      // Specify err as unknown, then narrow type for response
+      if (typeof err === "object" && err !== null && "response" in err) {
+        const errorResponse = (err as { response: Response & { status?: number } }).response;
+        if (errorResponse) {
+          const errorBody = await errorResponse.text();
+          const status = typeof errorResponse.status === "number" ? errorResponse.status : 502;
+          console.error("[API-006] Azure OpenAI API error:", status, errorBody);
+          return new Response(
+            `OpenAI API error (${status}) [API-006]: ${errorBody}`,
+            { status }
+          );
+        }
       }
       // Generic error
       console.error("[API-006] OpenAI API error:", err);

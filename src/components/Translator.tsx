@@ -14,7 +14,7 @@ export default function Translator() {
   const [translatedText, setTranslatedText] = useState("");
   const [correction, setCorrection] = useState("");
   const [suggestions, setSuggestions] = useState("");
-  const [targetLang, setTargetLang] = useState("en-US");
+  const [targetLang] = useState("en-US"); // Remove setTargetLang to fix unused var
   const [inputLang, setInputLang] = useState("en-US");
   const [isListening, setIsListening] = useState(false);
   const [processing, setProcessing] = useState(false);
@@ -64,7 +64,7 @@ export default function Translator() {
       let errorMsg = `Translation service error. [TR-003] (HTTP ${res.status})`;
       try {
         errorMsg = `[TR-003] (HTTP ${res.status}) ${await res.text()}`;
-      } catch (e) {
+      } catch {
         // Ignore parsing error, use default message
       }
       console.error("[TR-003] Translation API error:", errorMsg);
@@ -90,9 +90,8 @@ export default function Translator() {
           setSuggestions(parsed.suggestions);
           setTranslatedText(parsed.translation);
           setTranscript(parsed.correctedInput);
-        } catch (parseErr) {
-          // It's normal for parse to fail until the stream is complete, so only log for debugging
-          // console.debug("[TR-004] Partial stream parse error (may be expected):", parseErr);
+        } catch {
+          // It's normal for parse to fail until the stream is complete
         }
       }
     } catch (err) {
@@ -109,11 +108,10 @@ export default function Translator() {
       setSuggestions(parsed.suggestions);
       setTranslatedText(parsed.translation);
       setTranscript(parsed.correctedInput);
-      // If you want to show all sections, you can setSections here
       // setSections(parsed.sections || []);
-    } catch (err) {
+    } catch {
       setProcessing(false);
-      console.error("[TR-006] Error parsing translation response:", err);
+      console.error("[TR-006] Error parsing translation response.");
       setTranslatedText("Error parsing translation response. [TR-006]");
       return;
     }

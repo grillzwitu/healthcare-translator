@@ -56,18 +56,6 @@ export default function Panel({
     setTargetLang(value);
   };
 
-  /**
-   * Handles updates to the transcript text area.
-   * Catches and logs errors if the setter fails.
-   */
-  const handleTranscriptChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    try {
-      setTranscript(e.target.value);
-    } catch (err) {
-      console.error("Failed to update transcript:", err);
-    }
-  };
-
   return (
     <div className="flex flex-col gap-2 border rounded p-4 bg-white shadow min-w-0">
       {/* Panel header */}
