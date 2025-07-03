@@ -143,6 +143,8 @@ Replace the keys with the correct headings in the target language, and fill in t
           { role: "user", content: sanitizedText },
         ],
         max_completion_tokens: 2000,
+        temperature: 0,
+        top_p: 1,
         frequency_penalty: 0,
         presence_penalty: 0,
         model: modelName,
