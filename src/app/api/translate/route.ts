@@ -1,6 +1,6 @@
+import { LANGUAGES } from "@/constants/languages";
 import { NextRequest } from "next/server";
 import { AzureOpenAI } from "openai";
-import { LANGUAGES } from "@/constants/languages";
 
 /**
  * POST handler for translation and correction requests.
@@ -21,7 +21,7 @@ import { LANGUAGES } from "@/constants/languages";
 const endpoint = process.env.AZURE_OPENAI_ENDPOINT!;
 const apiKey = process.env.AZURE_OPENAI_API_KEY!;
 const deployment = process.env.AZURE_OPENAI_DEPLOYMENT_NAME!;
-const apiVersion = "2024-04-01-preview";
+const apiVersion = "2025-01-01-preview";
 const modelName = deployment;
 
 const client = new AzureOpenAI({
@@ -142,9 +142,8 @@ Replace the keys with the correct headings in the target language, and fill in t
           },
           { role: "user", content: sanitizedText },
         ],
-        max_completion_tokens: 800,
-        temperature: 0.3,
-        top_p: 1,
+        max_completion_tokens: 100000,
+        temperature: 1,
         frequency_penalty: 0,
         presence_penalty: 0,
         model: modelName,
